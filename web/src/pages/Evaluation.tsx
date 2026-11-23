@@ -105,7 +105,7 @@ export default function Evaluation() {
       )}
       {latest && (
         <section className="mb-8">
-          <h2 className="font-semibold mb-3">Latest run <span className="text-ink-3 font-normal text-sm">· {fmt.ago(latest.created_at)} · {latest.metrics.cases} questions · {String(latest.config.chat_model)} · reranker {String(latest.config.reranker)}</span></h2>
+          <h2 className="font-semibold mb-3">Latest run <span className="text-ink-3 font-normal text-sm">· {fmt.ago(latest.created_at)} · {latest.metrics.cases} questions · {latest.config.provider === 'fake' ? 'offline mode' : String(latest.config.chat_model)} · reranker {String(latest.config.reranker)}</span></h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {METRICS.map((m) => <Stat key={m.key} label={m.label} value={fmt.pct(latest.metrics[m.key] as number | null)} hint={m.hint} />)}
             <Stat label="Latency p50 / p95" value={`${fmt.ms(latest.metrics.latency_p50_ms)} / ${fmt.ms(latest.metrics.latency_p95_ms)}`} hint="end to end per question" />
