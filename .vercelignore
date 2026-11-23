@@ -1,0 +1,6 @@
+.venv
+web/node_modules
+server/tests
+deploy
+docs/media
+scripts
