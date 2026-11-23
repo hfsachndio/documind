@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { isAdmin } from "../lib/auth";
+import { isAdmin, useAuth } from "../lib/auth";
 import { useWs } from "../components/AppShell";
-import { PageHeader, toast } from "../components/ui";
+import { Modal, PageHeader, toast } from "../components/ui";
 
 interface Config { provider: string; chat_model: string; fast_model: string; embed_model: string; reranker: string; top_k: number; max_upload_mb: number; ai_configured: boolean }
 
 export default function Settings() {
   const { ws, role, workspace, reload } = useWs();
   const nav = useNavigate();
+  const { logout } = useAuth();
+  const [leaving, setLeaving] = useState(false);
+  const [pw, setPw] = useState("");
   const [name, setName] = useState(workspace.name);
   const [cfg, setCfg] = useState<Config | null>(null);
   useEffect(() => { setName(workspace.name); }, [workspace.name]);
@@ -54,6 +57,25 @@ export default function Settings() {
             await api(`/workspaces/${ws}`, { method: "DELETE" }); await reload(); nav("/");
           }}>Delete workspace</button>
         </section>
+      )}
+      <section className="card p-5">
+        <h2 className="font-semibold">Delete my account</h2>
+        <p className="text-sm text-ink-3 mt-1">Deletes your account and every workspace you created, with their documents, conversations and evaluation runs. Workspaces other people created stay; you are removed from them.</p>
+        <button className="btn-outline mt-3 text-bad" onClick={() => { setPw(""); setLeaving(true); }}>Delete my account</button>
+      </section>
+      {leaving && (
+        <Modal title="Delete your account?" onClose={() => setLeaving(false)}>
+          <form className="space-y-3" onSubmit={async (e) => {
+            e.preventDefault();
+            try { await api("/auth/me", { method: "DELETE", body: { password: pw } }); logout(); nav("/"); toast("Your account was deleted"); }
+            catch (x) { toast((x as Error).message, "err"); }
+          }}>
+            <p className="text-sm text-ink-2">This can't be undone. Enter your password to confirm.</p>
+            <label className="label" htmlFor="del-pw">Password</label>
+            <input id="del-pw" className="input" type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            <div className="flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={() => setLeaving(false)}>Cancel</button><button className="btn bg-bad text-white hover:bg-red-800">Delete account</button></div>
+          </form>
+        </Modal>
       )}
     </div>
   );

@@ -170,3 +170,15 @@ def test_bad_ids_are_404(client):
     h, ws, _ = signup(client)
     assert client.get("/api/workspaces/not-a-uuid/documents", headers=h).status_code == 404
     assert client.get(f"/api/workspaces/{ws}/documents/not-a-uuid", headers=h).status_code == 404
+
+
+def test_delete_account_removes_user_and_own_workspaces(client):
+    s = signup(client, email="leaver@acme.test")
+    h = {"Authorization": f"Bearer {s['token']}"}
+    ws = s["workspaces"][0]["id"]
+    assert client.request("DELETE", "/api/auth/me", json={"password": "wrong-password"}, headers=h).status_code == 403
+    assert client.request("DELETE", "/api/auth/me", json={"password": "correct-horse-9"}, headers=h).json() == {"deleted": True}
+    assert client.get("/api/auth/me", headers=h).status_code == 401
+    assert client.post("/api/auth/login", json={"email": "leaver@acme.test", "password": "correct-horse-9"}).status_code == 401
+    other = signup(client, email="other@acme.test")
+    assert client.get(f"/api/workspaces/{ws}", headers={"Authorization": f"Bearer {other['token']}"}).status_code in (403, 404)

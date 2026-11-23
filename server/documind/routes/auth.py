@@ -72,3 +72,18 @@ def login(body: LoginIn, db: psycopg.Connection = Depends(get_db)):
 @router.get("/me")
 def me(user: CurrentUser = Depends(current_user), db: psycopg.Connection = Depends(get_db)):
     return {"user": {"id": user.id, "name": user.name, "email": user.email}, "workspaces": _workspaces(db, user.id)}
+
+
+class DeleteAccountIn(BaseModel):
+    password: str
+
+
+@router.delete("/me")
+def delete_account(body: DeleteAccountIn, user: CurrentUser = Depends(current_user), db: psycopg.Connection = Depends(get_db)):
+    """Deletes the account and every workspace it created (with their documents and history).
+    Shared workspaces created by someone else stay; only this user's membership goes."""
+    row = db.execute("SELECT password_hash FROM users WHERE id = %s", (user.id,)).fetchone()
+    if not row or not verify_password(body.password, row["password_hash"]):
+        raise HTTPException(403, "Incorrect password")
+    db.execute("DELETE FROM users WHERE id = %s", (user.id,))
+    return {"deleted": True}
