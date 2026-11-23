@@ -1,13 +1,23 @@
 {
+  "framework": null,
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd web && npm ci",
   "buildCommand": "cd web && npm run build",
   "outputDirectory": "web/dist",
   "functions": {
-    "api/index.py": { "maxDuration": 60, "includeFiles": "server/documind/**" }
+    "api/index.py": {
+      "maxDuration": 60,
+      "includeFiles": "server/documind/**"
+    }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/((?!api/|assets/|favicon|og-image|robots|sitemap).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/|assets/|favicon|og-image|robots|sitemap).*)",
+      "destination": "/index.html"
+    }
   ]
 }

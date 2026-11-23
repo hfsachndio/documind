@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /w/
-Sitemap: https://documind-hafsah.vercel.app/sitemap.xml
+Sitemap: https://documind-hz.vercel.app/sitemap.xml
