@@ -19,10 +19,22 @@ def _float(name: str, default: float) -> float:
         return default
 
 
+def _jwt_secret() -> str:
+    """JWT_SECRET if set; otherwise a key derived from the (already secret) DATABASE_URL, so a fresh
+    deployment is secure without an extra variable. Only local development falls back to a fixed key."""
+    if os.environ.get("JWT_SECRET"):
+        return os.environ["JWT_SECRET"]
+    url = os.environ.get("DATABASE_URL", "")
+    if url and "localhost" not in url and "127.0.0.1" not in url:
+        import hashlib
+        return hashlib.sha256(f"documind-jwt-v1:{url}".encode()).hexdigest()
+    return "dev-only-change-me"
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str = field(default_factory=lambda: os.environ.get("DATABASE_URL", "postgresql://documind@localhost:5434/documind"))
-    jwt_secret: str = field(default_factory=lambda: os.environ.get("JWT_SECRET", "dev-only-change-me"))
+    jwt_secret: str = field(default_factory=lambda: _jwt_secret())
     jwt_ttl_hours: int = field(default_factory=lambda: _int("JWT_TTL_HOURS", 72))
 
     # LLM provider: "gemini" in production, "fake" for tests/offline development.

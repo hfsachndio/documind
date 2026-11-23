@@ -84,7 +84,7 @@ cd web && npm test         # answer rendering (no raw HTML), citations, verifica
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | local | Postgres with pgvector |
-| `JWT_SECRET` | — | session signing key (32+ chars in production) |
+| `JWT_SECRET` | derived | session signing key; when unset it is derived from `DATABASE_URL` (set your own 32+ chars to rotate sessions independently) |
 | `GEMINI_API_KEY` | — | enables Gemini; free key at aistudio.google.com |
 | `CHAT_MODEL` / `FAST_MODEL` | `gemini-flash-latest` / `gemini-flash-lite-latest` | answer model / rerank, verify, judge model |
 | `RERANKER` | `llm` | `llm`, `cross-encoder` (containers), `lexical`, `none` |
