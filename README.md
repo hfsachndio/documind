@@ -4,7 +4,7 @@ DocuMind is a production-style **RAG (retrieval-augmented generation)** app. Tea
 pages into a workspace, then ask questions in plain language. Answers are written only from those documents, cite the exact
 passage and page, and say "not found" instead of guessing.
 
-**Live app:** LIVE_URL · **API docs:** LIVE_URL/api/docs
+**Live app:** https://documind-hz.vercel.app · **API docs:** https://documind-hz.vercel.app/api/docs
 
 ![DocuMind](docs/media/DocuMind-overview.jpg)
 

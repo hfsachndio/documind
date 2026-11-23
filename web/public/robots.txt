@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /w/
-Sitemap: LIVE_URL/sitemap.xml
+Sitemap: https://documind-hz.vercel.app/sitemap.xml
