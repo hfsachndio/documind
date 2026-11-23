@@ -16,6 +16,10 @@ BASE = "https://generativelanguage.googleapis.com/v1beta"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
+class Overloaded(LLMError):
+    """Google returned 5xx (model overloaded) after retries."""
+
+
 def _normalize(v: list[float]) -> list[float]:
     n = math.sqrt(sum(x * x for x in v)) or 1.0
     return [x / n for x in v]
@@ -71,6 +75,8 @@ class GeminiProvider:
                 pass
             if r.status_code == 429:
                 raise LLMError("The free Gemini quota is used up for now. Please try again in a minute.")
+            if r.status_code in (500, 502, 503, 504):
+                raise Overloaded(f"Gemini is busy ({r.status_code}): {msg}")
             raise LLMError(f"Gemini error {r.status_code}: {msg}")
         raise LLMError("Gemini did not respond")
 
@@ -102,7 +108,14 @@ class GeminiProvider:
 
     def generate(self, system, messages, *, model=None, temperature=0.2, json_mode=False, tools=None) -> LLMResult:
         model = model or self.s.chat_model
-        data = self._post(f"models/{model}:generateContent", self._body(system, messages, temperature, json_mode, tools))
+        body = self._body(system, messages, temperature, json_mode, tools)
+        try:
+            # the main model gets two quick tries; when Google reports it overloaded, the fast model answers instead
+            data = self._post(f"models/{model}:generateContent", body, attempts=2 if model != self.s.fast_model else 4)
+        except Overloaded:
+            if model == self.s.fast_model:
+                raise LLMError("Gemini is overloaded right now. Please try again in a minute.") from None
+            data = self._post(f"models/{self.s.fast_model}:generateContent", body)
         cand = (data.get("candidates") or [{}])[0]
         content = cand.get("content") or {"role": "model", "parts": []}
         parts = content.get("parts", [])
@@ -121,6 +134,10 @@ class GeminiProvider:
         usage: dict = {}
         try:
             with self.client.stream("POST", f"{BASE}/models/{model}:streamGenerateContent?alt=sse", json=body) as r:
+                if r.status_code in (500, 502, 503, 504) and model != self.s.fast_model:
+                    r.read()  # main model overloaded before anything was sent: stream from the fast model instead
+                    yield from self.stream(system, messages, model=self.s.fast_model, temperature=temperature)
+                    return
                 if r.status_code != 200:
                     r.read()
                     if r.status_code == 429:

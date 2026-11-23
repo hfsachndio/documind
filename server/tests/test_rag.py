@@ -50,3 +50,24 @@ def test_aggregate_metrics():
     m = aggregate(results)
     assert m["hit_rate"] == 0.5 and m["mrr"] == 0.5 and m["answer_rate"] == 0.5 and m["abstention_accuracy"] == 1.0
     assert m["faithfulness"] == 1.0 and m["latency_p50_ms"] == 400 and m["cases"] == 3
+
+
+def test_gemini_falls_back_to_fast_model_when_main_model_is_overloaded(monkeypatch):
+    import httpx
+    from documind.config import Settings
+    from documind.llm import gemini as g
+
+    monkeypatch.setattr(g.time, "sleep", lambda s: None)
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if "flash-latest" in request.url.path:
+            return httpx.Response(503, json={"error": {"message": "The model is overloaded."}})
+        return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": "ok [1]"}]}}], "usageMetadata": {"promptTokenCount": 3}})
+
+    p = g.GeminiProvider(Settings(gemini_api_key="test-key"))
+    p.client = httpx.Client(transport=httpx.MockTransport(handler))
+    r = p.generate("sys", [{"role": "user", "content": "hi"}])
+    assert r.text == "ok [1]"
+    assert sum("flash-latest" in c for c in calls) == 2 and "flash-lite-latest" in calls[-1]
