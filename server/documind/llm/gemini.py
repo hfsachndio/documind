@@ -55,6 +55,8 @@ class GeminiProvider:
             try:
                 r = self.client.post(f"{BASE}/{path}", json=body, timeout=httpx.Timeout(read_timeout, connect=10.0))
             except httpx.HTTPError as e:
+                if isinstance(e, httpx.TimeoutException) and attempts <= 2:
+                    raise Overloaded(f"Gemini timed out: {e}") from e  # quick-try mode: hand over to the fast model now
                 if i == attempts - 1:
                     if isinstance(e, httpx.TimeoutException):
                         raise Overloaded(f"Gemini timed out: {e}") from e
