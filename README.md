@@ -8,7 +8,7 @@ passage and page, and say "not found" instead of guessing.
 
 ![DocuMind](docs/media/DocuMind-overview.jpg)
 
-https://github.com/hfsachndio/documind/raw/main/docs/media/DocuMind-demo.mp4
+**Demo video (58 s):** [docs/media/DocuMind-demo.mp4](docs/media/DocuMind-demo.mp4), recorded on the live site with real Gemini answers.
 
 ## What it does
 
@@ -29,6 +29,16 @@ https://github.com/hfsachndio/documind/raw/main/docs/media/DocuMind-demo.mp4
   run history charts. Export a run and cross-check it with the **RAGAS** library (`scripts/`).
 - **Observability**: per-stage timings (embed, search, rerank, generate, verify), tokens and cost for every answer; usage dashboard.
 - **API**: REST + OpenAPI (FastAPI) for everything the UI does, including streaming (SSE).
+
+## Screenshots
+
+| Cited answer with the exact source passage | Agent mode: planned tool calls + calculation |
+| --- | --- |
+| ![Cited answer](docs/screenshots/04-answer.jpg) | ![Agent](docs/screenshots/06-agent.jpg) |
+| **Answer trace: ranks, timings, tokens, cost** | **Evaluation dashboard (hit rate, MRR, faithfulness…)** |
+| ![Trace](docs/screenshots/05-trace.jpg) | ![Evaluation](docs/screenshots/08-evaluation.jpg) |
+| **Says "not found" instead of guessing** | **Roles and groups (restricted documents)** |
+| ![Refusal](docs/screenshots/07-refusal.jpg) | ![Members](docs/screenshots/09-members.jpg) |
 
 ## Architecture
 
