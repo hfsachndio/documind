@@ -154,7 +154,7 @@ def run_agent(db: psycopg.Connection, s: Settings, a: Access, question: str, his
     steps: list[dict] = []
     final = ""
     for _ in range(MAX_STEPS):
-        r = provider.generate(AGENT_SYSTEM, messages, temperature=0.1, tools=TOOLS)
+        r = provider.generate(AGENT_SYSTEM, messages, model=s.agent_model, temperature=0.1, tools=TOOLS)
         run.tin += r.tokens_in; run.tout += r.tokens_out
         if not r.tool_calls:
             final = r.text
@@ -173,7 +173,7 @@ def run_agent(db: psycopg.Connection, s: Settings, a: Access, question: str, his
         messages.append({"role": "tool", "results": results})
     else:
         final = provider.generate(AGENT_SYSTEM + "\nYou have used all your tool calls. Answer now from what you found.",
-                                  messages, temperature=0.1).text
+                                  messages, model=s.agent_model, temperature=0.1).text
     text, used = extract_citations(final or NOT_FOUND, len(run.sources))
     answered = not is_refusal(text)
     trace = {"mode": "agent", "steps": steps}

@@ -86,7 +86,7 @@ cd web && npm test         # answer rendering (no raw HTML), citations, verifica
 | `DATABASE_URL` | local | Postgres with pgvector |
 | `JWT_SECRET` | derived | session signing key; when unset it is derived from `DATABASE_URL` (set your own 32+ chars to rotate sessions independently) |
 | `GEMINI_API_KEY` | — | enables Gemini; free key at aistudio.google.com |
-| `CHAT_MODEL` / `FAST_MODEL` | `gemini-flash-latest` / `gemini-flash-lite-latest` | answer model / rerank, verify, judge model |
+| `CHAT_MODEL` / `FAST_MODEL` / `AGENT_MODEL` | `gemini-flash-latest` / `gemini-flash-lite-latest` / fast model | answer model / rerank, verify, judge model / agent tool-calling model |
 | `RERANKER` | `llm` | `llm`, `cross-encoder` (containers), `lexical`, `none` |
 | `TOP_K`, `RETRIEVE_CANDIDATES`, `MIN_RELEVANCE` | 6, 30, 0.35 | retrieval depth and refusal threshold |
 | `CHUNK_TOKENS`, `CHUNK_OVERLAP` | 350, 60 | chunking |

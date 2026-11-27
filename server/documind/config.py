@@ -42,6 +42,8 @@ class Settings:
     gemini_api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
     chat_model: str = field(default_factory=lambda: os.environ.get("CHAT_MODEL", "gemini-flash-latest"))
     fast_model: str = field(default_factory=lambda: os.environ.get("FAST_MODEL", "gemini-flash-lite-latest"))
+    # the agent makes several model calls per question, so it uses the quicker model by default
+    agent_model: str = field(default_factory=lambda: os.environ.get("AGENT_MODEL", os.environ.get("FAST_MODEL", "gemini-flash-lite-latest")))
     embed_model: str = field(default_factory=lambda: os.environ.get("EMBED_MODEL", "gemini-embedding-001"))
     embed_dim: int = field(default_factory=lambda: _int("EMBED_DIM", 768))
 
