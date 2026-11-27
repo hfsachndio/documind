@@ -38,9 +38,9 @@ whose arithmetic matches a calculation is supported.
 Return JSON: {"claims":[{"claim":"...","supported":true|false}]}"""
 
 
-def format_sources(hits: list[Hit]) -> str:
+def format_sources(hits: list[Hit], numbers: list[int] | None = None) -> str:
     out = []
-    for i, h in enumerate(hits, 1):
+    for i, h in zip(numbers or range(1, len(hits) + 1), hits):
         where = f"{h.title}" + (f", page {h.page}" if h.page else "") + (f" - {h.heading}" if h.heading else "")
         out.append(f"[{i}] {where}\n{h.content}")
     return "\n\n".join(out)
@@ -92,11 +92,12 @@ def condense(s: Settings, question: str, history: list[dict]) -> tuple[str, int,
         return question, 0, 0
 
 
-def verify(s: Settings, answer: str, hits: list[Hit], calculations: list[str] | None = None) -> tuple[dict, int, int]:
+def verify(s: Settings, answer: str, hits: list[Hit], calculations: list[str] | None = None,
+           numbers: list[int] | None = None) -> tuple[dict, int, int]:
     """LLM-as-judge faithfulness: share of claims supported by the retrieved sources (and calculator results)."""
     calc = ("\n\nCALCULATIONS:\n" + "\n".join(calculations)) if calculations else ""
     try:
-        r = get_provider(s).generate(VERIFY_SYSTEM, [{"role": "user", "content": f"SOURCES:\n{format_sources(hits)}{calc}\n\nANSWER:\n{answer}"}],
+        r = get_provider(s).generate(VERIFY_SYSTEM, [{"role": "user", "content": f"SOURCES:\n{format_sources(hits, numbers)}{calc}\n\nANSWER:\n{answer}"}],
                                      model=s.fast_model, temperature=0.0, json_mode=True)
         claims = json.loads(re.search(r"\{.*\}", r.text, re.S).group(0)).get("claims", [])
         ok = sum(1 for c in claims if c.get("supported"))

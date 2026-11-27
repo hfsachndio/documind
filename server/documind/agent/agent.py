@@ -180,7 +180,8 @@ def run_agent(db: psycopg.Connection, s: Settings, a: Access, question: str, his
     trace = {"mode": "agent", "steps": steps}
     if answered and run.sources:
         calcs = [f"{st['args'].get('expression')} {st['summary']}" for st in steps if st["tool"] == "calculate" and st["summary"].startswith("=")]
-        v, vi, vo = verify(s, text, [run.sources[n - 1] for n in used] or run.sources[:6], calcs)
+        nums = used or list(range(1, min(6, len(run.sources)) + 1))  # keep the answer's own source numbers
+        v, vi, vo = verify(s, text, [run.sources[n - 1] for n in nums], calcs, nums)
         run.tin += vi; run.tout += vo
         trace["verification"] = v
     trace["timings_ms"] = {"total": round((time.perf_counter() - t0) * 1000)}
