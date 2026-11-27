@@ -58,7 +58,9 @@ def extract_citations(text: str, n_sources: int) -> tuple[str, list[int]]:
             return m.group(0)
         return ""
 
+    text = re.sub(r"\[(\d{1,2}(?:\s*,\s*\d{1,2})+)\]", lambda m: "".join(f"[{x.strip()}]" for x in m.group(1).split(",")), text)  # [1, 2] -> [1][2]
     cleaned = re.sub(r"\[(\d{1,2})\]", fix, text)
+    cleaned = re.sub(r"\s*\[\s*\]", "", cleaned)  # empty brackets the model sometimes leaves
     return re.sub(r"[ \t]+([.,;])", r"\1", cleaned).strip(), used
 
 

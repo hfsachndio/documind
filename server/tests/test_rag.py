@@ -71,3 +71,9 @@ def test_gemini_falls_back_to_fast_model_when_main_model_is_overloaded(monkeypat
     r = p.generate("sys", [{"role": "user", "content": "hi"}])
     assert r.text == "ok [1]"
     assert sum("flash-latest" in c for c in calls) == 2 and "flash-lite-latest" in calls[-1]
+
+
+def test_extract_citations_handles_lists_and_empty_brackets():
+    from documind.rag.answer import extract_citations
+    text, used = extract_citations("A [1, 2]. B []. C [9].", 2)
+    assert text == "A [1][2]. B. C." and used == [1, 2]
