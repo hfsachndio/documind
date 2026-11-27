@@ -50,12 +50,14 @@ class GeminiProvider:
         self.s = s
         self.client = httpx.Client(timeout=httpx.Timeout(55.0, connect=10.0), headers={"x-goog-api-key": s.gemini_api_key})
 
-    def _post(self, path: str, body: dict, attempts: int = 4) -> dict:
+    def _post(self, path: str, body: dict, attempts: int = 4, read_timeout: float = 55.0) -> dict:
         for i in range(attempts):
             try:
-                r = self.client.post(f"{BASE}/{path}", json=body)
+                r = self.client.post(f"{BASE}/{path}", json=body, timeout=httpx.Timeout(read_timeout, connect=10.0))
             except httpx.HTTPError as e:
                 if i == attempts - 1:
+                    if isinstance(e, httpx.TimeoutException):
+                        raise Overloaded(f"Gemini timed out: {e}") from e
                     raise LLMError(f"Gemini unreachable: {e}") from e
                 time.sleep(1.5 * (i + 1))
                 continue
@@ -116,7 +118,8 @@ class GeminiProvider:
         body = self._body(system, messages, temperature, json_mode, tools)
         try:
             # the main model gets two quick tries; when Google reports it overloaded, the fast model answers instead
-            data = self._post(f"models/{model}:generateContent", body, attempts=2 if model != self.s.fast_model else 4)
+            main = model != self.s.fast_model
+            data = self._post(f"models/{model}:generateContent", body, attempts=2 if main else 4, read_timeout=20.0 if main else 55.0)
         except Overloaded:
             _overloaded_until[model] = time.monotonic() + 120
             if model == self.s.fast_model:
