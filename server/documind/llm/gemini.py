@@ -136,12 +136,18 @@ class GeminiProvider:
 
     def stream(self, system, messages, *, model=None, temperature=0.2) -> Iterator[str | LLMResult]:
         model = model or self.s.chat_model
+        if model != self.s.fast_model and time.monotonic() < _overloaded_until.get(model, 0):
+            model = self.s.fast_model
         body = self._body(system, messages, temperature, False, None)
         usage: dict = {}
+        sent = False
         try:
-            with self.client.stream("POST", f"{BASE}/models/{model}:streamGenerateContent?alt=sse", json=body) as r:
+            # a slow first byte means the model is overloaded: give up quickly and use the fast model
+            with self.client.stream("POST", f"{BASE}/models/{model}:streamGenerateContent?alt=sse", json=body,
+                                    timeout=httpx.Timeout(55.0, connect=10.0, read=20.0 if model != self.s.fast_model else 45.0)) as r:
                 if r.status_code in (500, 502, 503, 504) and model != self.s.fast_model:
-                    r.read()  # main model overloaded before anything was sent: stream from the fast model instead
+                    r.read()
+                    _overloaded_until[model] = time.monotonic() + 120  # main model overloaded before anything was sent: stream from the fast model instead
                     yield from self.stream(system, messages, model=self.s.fast_model, temperature=temperature)
                     return
                 if r.status_code != 200:
@@ -156,8 +162,13 @@ class GeminiProvider:
                     usage = chunk.get("usageMetadata", usage)
                     for p in ((chunk.get("candidates") or [{}])[0].get("content") or {}).get("parts", []):
                         if p.get("text") and not p.get("thought"):
+                            sent = True
                             yield p["text"]
         except httpx.HTTPError as e:
+            if not sent and model != self.s.fast_model:
+                _overloaded_until[model] = time.monotonic() + 120
+                yield from self.stream(system, messages, model=self.s.fast_model, temperature=temperature)
+                return
             raise LLMError(f"Gemini unreachable: {e}") from e
         yield LLMResult(tokens_in=usage.get("promptTokenCount", 0),
                         tokens_out=usage.get("candidatesTokenCount", 0) + usage.get("thoughtsTokenCount", 0))
