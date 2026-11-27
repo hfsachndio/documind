@@ -16,6 +16,9 @@ BASE = "https://generativelanguage.googleapis.com/v1beta"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
+_overloaded_until: dict[str, float] = {}  # model -> monotonic time until which we skip it (per warm instance)
+
+
 class Overloaded(LLMError):
     """Google returned 5xx (model overloaded) after retries."""
 
@@ -66,7 +69,7 @@ class GeminiProvider:
                             wait = max(wait, float(d["retryDelay"].rstrip("s")))
                 except Exception:
                     pass
-                time.sleep(min(wait, 20))
+                time.sleep(min(wait, 20 if attempts > 2 else 3))
                 continue
             msg = r.text[:300]
             try:
@@ -108,11 +111,14 @@ class GeminiProvider:
 
     def generate(self, system, messages, *, model=None, temperature=0.2, json_mode=False, tools=None) -> LLMResult:
         model = model or self.s.chat_model
+        if model != self.s.fast_model and time.monotonic() < _overloaded_until.get(model, 0):
+            model = self.s.fast_model  # main model was overloaded moments ago: don't wait on it again
         body = self._body(system, messages, temperature, json_mode, tools)
         try:
             # the main model gets two quick tries; when Google reports it overloaded, the fast model answers instead
             data = self._post(f"models/{model}:generateContent", body, attempts=2 if model != self.s.fast_model else 4)
         except Overloaded:
+            _overloaded_until[model] = time.monotonic() + 120
             if model == self.s.fast_model:
                 raise LLMError("Gemini is overloaded right now. Please try again in a minute.") from None
             data = self._post(f"models/{self.s.fast_model}:generateContent", body)
